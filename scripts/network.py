@@ -39,3 +39,20 @@ class Network(object):
         self.model = keras.models.Model(input=model.input, output=predictions)
         #print self.model.summary()
         return
+
+class temp(object):
+    '''
+    Temporal auxiliar class for debugging. Contains dummy versions of modules of the project that haven't been written yet.
+    '''
+    def __init__(self):
+        return
+    
+    def get_generators(self):
+        '''
+        Returns a train and validation generators.
+        '''
+        return
+    
+    
+    
+    
