@@ -40,7 +40,12 @@ class Network(object):
         self.model = keras.models.Model(input=model.input, output=predictions)
         #print self.model.summary()
         return
-        
+    
+    def train(self, epochs):
+        '''
+        Train the network. This method shouldn't be called directly
+        '''
+        return
 
 class Temp(object):
     '''
@@ -80,7 +85,3 @@ class Temp(object):
                 target_size=(150, 150),
                 batch_size=32)
         return train_generator, val_generator
-    
-    
-    
-    
