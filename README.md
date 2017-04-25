@@ -10,7 +10,7 @@ for the course Intelligent Systems in Medical Imaging.
 * ISMI-Project/data/images/pre/ - for the preprocessed data  
 * ISMI-Project/data/tensorboard_logs/ - for the tensorboard logs generated while training
 * ISMI-Project/data/weights/input/ - for the weights that the networks can load
-* ISMI-Project/data/weights/input/ - for saving the weights of the networks during training
+* ISMI-Project/data/weights/output/ - for saving the weights of the networks during training
 * ISMI-Project/scripts/ - for python scripts (like the data generators etc.)                   
 * ISMI-Project/notebooks/ - for the notebooks
 
