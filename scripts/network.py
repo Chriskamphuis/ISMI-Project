@@ -19,7 +19,13 @@ TENSORBOARD_LOGS_DIR = os.path.join('..','data','tensorboard_logs')
 
 class Network(object):
     '''
-    Class to train networks. The idea is not to train them from scratch, as the provided data set was relatively small. Instead, we should employ transfer learning: first, we downloaded the weights of pre-trained networks known to have good performance on ImageNet, with the aim of using it as a reliable baseline feature extractor. Second, we substitute the last dense layer of the networks for a new one suitable for our case. Third, we used our data to train only this new layer (freezing the other layers). Finally, we unfreeze some of the original layers and train those with a low learning rate, to fine-tune the network for our specific domain.
+    Class to train networks. The idea is not to train them from scratch, as the provided data set 
+    was relatively small. Instead, we should employ transfer learning: first, we downloaded the weights 
+    of pre-trained networks known to have good performance on ImageNet, with the aim of using it as a 
+    reliable baseline feature extractor. Second, we substitute the last dense layer of the networks for
+    a new one suitable for our case. Third, we used our data to train only this new layer (freezing the
+    other layers). Finally, we unfreeze some of the original layers and train those with a low learning
+    rate, to fine-tune the network for our specific domain.
     '''
     def __init__(self, pretrained_arch, input_weights_name = None):
         '''
@@ -46,7 +52,8 @@ class Network(object):
         self.model = keras.models.Model(
                                     inputs=self.pretrained_layers.input,
                                     outputs=top_layers)
-        print len(self.model.layers),'total layers (',len(self.pretrained_layers.layers),'pretrained and',len(self.model.layers)-len(self.pretrained_layers.layers),'new stacked on top)'
+        print len(self.model.layers),'total layers (',len(self.pretrained_layers.layers),\
+            'pretrained and',len(self.model.layers)-len(self.pretrained_layers.layers),'new stacked on top)'
         self.generators = dict()
         self.pretrained_arch = pretrained_arch
         sleep(1)
@@ -62,8 +69,8 @@ class Network(object):
         non_trainable = [not i for i in trainable]
         tr_pos = list(np.where(trainable)[0])
         nontr_pos = list(np.where(non_trainable)[0])
-        print '(',sum(trainable),') trainable layers: from',tr_pos[0],'to',tr_pos[-1]
-        print '(',sum(non_trainable),') non-trainable layers: from',nontr_pos[0],'to',nontr_pos[-1]
+        print sum(trainable),'trainable layers: from',tr_pos[0],'to',tr_pos[-1]
+        print sum(non_trainable),'non-trainable layers: from',nontr_pos[0],'to',nontr_pos[-1]
     
     def freeze_all_pretrained_layers(self):
         '''
