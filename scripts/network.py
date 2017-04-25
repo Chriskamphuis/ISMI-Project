@@ -35,24 +35,22 @@ class Network(object):
         :param pretrained_arch:
         '''
         pretrained_layers = PRETRAINED_MODELS[pretrained_arch](weights='imagenet', include_top=False)
+        top_layers = pretrained_layers.output
+        top_layers = keras.layers.GlobalAveragePooling2D()(top_layers)
+        top_layers = keras.layers.Dense(1024, activation='relu')(top_layers)
+        top_layers = keras.layers.Dense(3, activation='softmax')(top_layers)
+   
+        self.pretrained_layers = pretrained_layers
+        self.model = keras.models.Model(
+                                    inputs=self.pretrained_layers.input,
+                                    outputs=top_layers)
         if not input_weights_name:
             print 'Original Imagenet weights for network',pretrained_arch,'loaded'
         else:
             input_weights_path = os.path.join(WEIGHTS_INPUT_DIR, input_weights_name)
             print 'Loading weights for',pretrained_arch,'from',input_weights_path
-            #TODO
-            #model.load_weights(input_weights_path)
-        top_layers = pretrained_layers.output
-        top_layers = keras.layers.GlobalAveragePooling2D()(top_layers)
-        top_layers = keras.layers.Dense(1024, activation='relu')(top_layers)
-        top_layers = keras.layers.Dense(3, activation='softmax')(top_layers)
-        
-        
-        self.pretrained_layers = pretrained_layers
-        self.model = keras.models.Model(
-                                    inputs=self.pretrained_layers.input,
-                                    outputs=top_layers)
-        self.print_layers_info(self)
+            self.model.load_weights(input_weights_path)
+        #self.print_layers_info()
         self.generators = dict()
         self.pretrained_arch = pretrained_arch
         sleep(1)
@@ -70,22 +68,29 @@ class Network(object):
         non_trainable = [not i for i in trainable]
         tr_pos = list(np.where(trainable)[0])
         nontr_pos = list(np.where(non_trainable)[0])
-        print sum(trainable),'trainable layers: from',tr_pos[0],'to',tr_pos[-1]
-        print sum(non_trainable),'non-trainable layers: from',nontr_pos[0],'to',nontr_pos[-1]
+        print '\t',sum(non_trainable),'non-trainable layers: from',nontr_pos[0],'to',nontr_pos[-1]
+        print '\t',sum(trainable),'trainable layers: from',tr_pos[0],'to',tr_pos[-1]
+        print 'Trainable layer map:',''.join([str(int(l.trainable)) for l in self.model.layers])
     
     def freeze_all_pretrained_layers(self):
         '''
         Freeze all the pretrained layers. Note: a "pretrained layer" is named as such
         even after fine-tunning it
         '''
+        print 'Freezing all pretrained layers...'
         for layer in self.pretrained_layers.layers:
             layer.trainable = False
     
-    def unfreeze_last_pretrained_layers(self, n_layers):
+    def unfreeze_last_pretrained_layers(self, n_layers = None, percentage = None):
         '''
         Un freeze some of the last pretrained layers of the model
         '''
-        for layer in self.pretrained_layers.layers[:-n_layers]:
+        assert n_layers or percentage
+        if percentage:
+            assert percentage < 1
+            n_layers = int(float(len(self.pretrained_layers.layers))*percentage)
+        print 'Freezing last',n_layers,'of the pretrained model',self.pretrained_arch,'...'
+        for layer in self.pretrained_layers.layers[-n_layers:]:
             layer.trainable = True
     
     def set_train_val_generators(self, train_generator, val_generator):
@@ -105,7 +110,8 @@ class Network(object):
         if finetuning:
             optimizer = keras.optimizers.SGD(lr=0.0001, momentum=0.9)
         else:
-            optimizer = 'adam'    
+            optimizer = 'adam'
+        print 'Using optimizer:',optimizer
         #Compile the model
         self.model.compile(
             optimizer=optimizer,
@@ -114,7 +120,7 @@ class Network(object):
         return
         
     
-    def train(self, epochs, batch_size, weights_name):
+    def train(self, epochs, batch_size):
         '''
         Train the network. Note: only the weights of the trainable layers will
         be modified
@@ -126,11 +132,10 @@ class Network(object):
         #Visualize which layers are gonna be trained
         self.print_layers_info()
         
-        
         callbacks_list = []
-        
+        trainable_layers = sum([int(layer.trainable) for layer in self.model.layers])
         #Set up save checkpoints for model's weights
-        weights_name = self.pretrained_arch +'.'+weights_name + ".e{epoch:03d}-tloss{loss:.4f}-vloss{val_loss:.4f}.hdf5"
+        weights_name = self.pretrained_arch +'.'+str(trainable_layers) + ".e{epoch:03d}-tloss{loss:.4f}-vloss{val_loss:.4f}.hdf5"
         weights_path = os.path.join(WEIGHTS_OUTPUT_DIR, weights_name)
         callbacks_list.append(keras.callbacks.ModelCheckpoint(
             weights_path,
@@ -147,13 +152,13 @@ class Network(object):
                 write_images = True))
         
         #TODO handle usage of class freq weights or balanced batch generators
-        '''
+        
         class_weights = {
-                'Type_1':1-0.18
-                'Type_2':1-0.55
-                'Type_3':1-0.27}
-        '''
-        class_weights = None
+                0:1-0.18,
+                1:1-0.55,
+                2:1-0.27}
+        
+        #class_weights = None
         
         #Fix needed https://github.com/fchollet/keras/issues/5475
         from PIL import ImageFile
@@ -190,7 +195,7 @@ class Temp(object):
         train_dir = os.path.join('..','data','images','raw','train') #Should contain one director per class
         val_dir = os.path.join('..','data','images','raw','validate') #Should contain one director per class
         
-        image_shape = (300, 300)
+        image_shape = (200, 200)
         
         from keras.preprocessing.image import ImageDataGenerator
         train_augmenter = ImageDataGenerator(
@@ -200,7 +205,7 @@ class Temp(object):
                 rotation_range=30,
                 width_shift_range=0.15,
                 height_shift_range=0.15,
-                preprocessing_function=None, #Maybe we could place here our segmentation function, or add blur
+                preprocessing_function=None, #Maybe we could place here our segmentation function, or add random blur
                 horizontal_flip=True)
 
         val_augmenter = ImageDataGenerator(
@@ -210,12 +215,15 @@ class Temp(object):
         train_generator = train_augmenter.flow_from_directory(
                 directory = train_dir,
                 target_size=image_shape,
-                batch_size=32)
+                batch_size=32,
+                classes = ['Type_1','Type_2','Type_3'])
 
         val_generator = val_augmenter.flow_from_directory(
                 directory = val_dir,
                 target_size=image_shape,
-                batch_size=32)
+                batch_size=32,
+                classes = ['Type_1','Type_2','Type_3'])
+                
         return train_generator, val_generator
 
 
