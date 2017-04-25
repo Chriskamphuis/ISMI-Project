@@ -52,19 +52,20 @@ class Network(object):
         self.model = keras.models.Model(
                                     inputs=self.pretrained_layers.input,
                                     outputs=top_layers)
-        print len(self.model.layers),'total layers (',len(self.pretrained_layers.layers),\
-            'pretrained and',len(self.model.layers)-len(self.pretrained_layers.layers),'new stacked on top)'
+        self.print_layers_info(self)
         self.generators = dict()
         self.pretrained_arch = pretrained_arch
         sleep(1)
         #print self.model.summary()
         return
     
-    def print_trainable_layers(self):
+    def print_layers_info(self):
         '''
         Prints information about current frozen (non trainable) and unfrozen (trainable)
         layers
         '''
+        print len(self.model.layers),'total layers (',len(self.pretrained_layers.layers),\
+            'pretrained and',len(self.model.layers)-len(self.pretrained_layers.layers),'new stacked on top)'
         trainable = [layer.trainable for layer in self.model.layers]
         non_trainable = [not i for i in trainable]
         tr_pos = list(np.where(trainable)[0])
@@ -123,7 +124,7 @@ class Network(object):
         #assert(all([layer.trainable for layer in self.top_layers.layers]))
         
         #Visualize which layers are gonna be trained
-        self.print_trainable_layers()
+        self.print_layers_info()
         
         
         callbacks_list = []
