@@ -84,7 +84,7 @@ class Network(object):
         '''
         Un freeze some of the last pretrained layers of the model
         '''
-        for layer in self.pretrained_layers.layers:
+        for layer in self.pretrained_layers.layers[:-n_layers]:
             layer.trainable = True
     
     def set_train_val_generators(self, train_generator, val_generator):
@@ -129,7 +129,7 @@ class Network(object):
         callbacks_list = []
         
         #Set up save checkpoints for model's weights
-        weights_name = weights_name + ".e{epoch:03d}-tloss{loss:.4f}-vloss{val_loss:.4f}.hdf5"
+        weights_name = self.pretrained_arch +'.'+weights_name + ".e{epoch:03d}-tloss{loss:.4f}-vloss{val_loss:.4f}.hdf5"
         weights_path = os.path.join(WEIGHTS_OUTPUT_DIR, weights_name)
         callbacks_list.append(keras.callbacks.ModelCheckpoint(
             weights_path,
@@ -167,7 +167,7 @@ class Network(object):
             validation_data = self.generators['validate'],
             validation_steps = int(0.25*total_unique_images/batch_size),
             class_weight = class_weights,
-            workers = 2,
+            workers = 10,
             callbacks = callbacks_list)
         return
 
@@ -189,7 +189,7 @@ class Temp(object):
         train_dir = os.path.join('..','data','images','raw','train') #Should contain one director per class
         val_dir = os.path.join('..','data','images','raw','validate') #Should contain one director per class
         
-        image_shape = (150, 150)
+        image_shape = (300, 300)
         
         from keras.preprocessing.image import ImageDataGenerator
         train_augmenter = ImageDataGenerator(
@@ -197,9 +197,9 @@ class Temp(object):
                 shear_range=0.1,
                 zoom_range=0.2,
                 rotation_range=30,
-                width_shift_range=0.1,
-                height_shift_range=0.1,
-                preprocessing_function=None, #Maybe we could place here our segmentation function
+                width_shift_range=0.15,
+                height_shift_range=0.15,
+                preprocessing_function=None, #Maybe we could place here our segmentation function, or add blur
                 horizontal_flip=True)
 
         val_augmenter = ImageDataGenerator(
