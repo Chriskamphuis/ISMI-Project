@@ -3,10 +3,11 @@ import os
 import numpy as np
 import datetime
 from pytz import timezone
-from network import Network
+from convnetskeras.convnets import preprocess_image_batch
+from SimpleNetwork import Network
 
 SUBMISSION_DIR = os.path.join('..','data','submissions')
-TEST_DIR = os.path.join('..','data','images','pre')
+TEST_DIR = os.path.join('..','data','images','raw','test')
 CLASSES = ['Type_1','Type_2','Type_3']
 
 '''
@@ -16,14 +17,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--weights', help="Name of the wanted weights saved in the output folder", required=True)
 parser.add_argument('--model', help="Name of the architecture to be used", required=True)
 parser.add_argument('--test', help="Directory of the test data", default=TEST_DIR)
-parser.add_argument('--batch_size', help="Batch size for testing", default=32)
 
 args = parser.parse_args()
 
 output_weights_name = str(args.weights)
 model_name = str(args.model)
 TEST_DIR = str(args.test)
-batch_size = args.batch_size
 
 
 def load_test_data(loadPath):
@@ -34,8 +33,13 @@ def load_test_data(loadPath):
     image_names = []
     photos = os.listdir(loadPath)
     for photo in photos:
-        images.extend(photo)
-        image_names.append(photo)
+        if (not 'Thumbs.db' in photo):
+            prep = preprocess_image_batch([loadPath + '/' + photo], img_size=(224, 224), color_mode="bgr")
+            prep = prep.transpose([0,2,3,1])
+            print prep.shape
+            images.extend(prep)
+            image_names.append(photo)
+            break
     return (image_names, np.array(images))
 
 
@@ -73,5 +77,5 @@ if __name__ == "__main__":
     image_names,images = load_test_data(TEST_DIR)
     network = Network(model_name,output_weights_name=output_weights_name)
     network.compile(False)
-    predictions = network.predict(images,batch_size=batch_size)
+    predictions = network.predict(images)
     write_submission_file(image_names,predictions)
