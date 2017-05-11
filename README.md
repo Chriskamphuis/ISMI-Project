@@ -32,4 +32,4 @@ up with more ease.
 doing and we have a better overview of what everyone is doing. 
 * When you write code that is important for the project, also create an issue
 for testing the code. Then someone else can test your code and see if it
-works properly.
+works properly. 
