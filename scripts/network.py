@@ -27,7 +27,7 @@ class Network(object):
     other layers). Finally, we unfreeze some of the original layers and train those with a low learning
     rate, to fine-tune the network for our specific domain.
     '''
-    def __init__(self, pretrained_arch, input_weights_name = None):
+    def __init__(self, pretrained_arch, input_weights_name = None, output_weights_name=None):
         '''
         Transfer Learning network initialization.
         
@@ -39,17 +39,18 @@ class Network(object):
         top_layers = keras.layers.GlobalAveragePooling2D()(top_layers)
         top_layers = keras.layers.Dense(1024, activation='relu')(top_layers)
         top_layers = keras.layers.Dense(3, activation='softmax')(top_layers)
-   
+
         self.pretrained_layers = pretrained_layers
-        self.model = keras.models.Model(
-                                    inputs=self.pretrained_layers.input,
-                                    outputs=top_layers)
-        if not input_weights_name:
+        self.model = keras.models.Model(input=self.pretrained_layers.input,output=top_layers)
+        if not input_weights_name and not output_weights_name:
             print 'Original Imagenet weights for network',pretrained_arch,'loaded'
+        elif output_weights_name:
+            output_weights_name = os.path.join(WEIGHTS_OUTPUT_DIR, output_weights_name)
+            self.pretrained_layers.load_weights(output_weights_name)
         else:
             input_weights_path = os.path.join(WEIGHTS_INPUT_DIR, input_weights_name)
             print 'Loading weights for',pretrained_arch,'from',input_weights_path
-            self.model.load_weights(input_weights_path)
+            self.pretrained_layers.load_weights(input_weights_path)
         #self.print_layers_info()
         self.generators = dict()
         self.pretrained_arch = pretrained_arch
@@ -117,6 +118,7 @@ class Network(object):
             optimizer=optimizer,
             loss="categorical_crossentropy",
             metrics = ['accuracy'])
+        self.model.summary()
         return
         
     
@@ -176,6 +178,9 @@ class Network(object):
             workers = 10,
             callbacks = callbacks_list)
         return
+    def predict(self, X):
+        return self.model.predict(X,batch_size=1)
+
 
 class Temp(object):
     '''
