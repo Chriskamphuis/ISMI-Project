@@ -195,7 +195,7 @@ class Temp(object):
         train_dir = os.path.join('..','data','images','raw','train') #Should contain one director per class
         val_dir = os.path.join('..','data','images','raw','validate') #Should contain one director per class
         
-        image_shape = (200, 200)
+        image_shape = (250, 250)
         
         from keras.preprocessing.image import ImageDataGenerator
         train_augmenter = ImageDataGenerator(
