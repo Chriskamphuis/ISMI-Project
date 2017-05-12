@@ -4,8 +4,9 @@ from keras.applications import ResNet50, InceptionV3, Xception, VGG16, VGG19
 import scipy.misc
 import numpy as np
 from time import sleep
+import segmentator
 
-PRETRAINED_MODELS = {
+ARCHITECTURES = {
     "vgg16":        VGG16,
     "vgg19":        VGG19,
     "inception":    InceptionV3,
@@ -37,7 +38,7 @@ class Network(object):
         architecture)
         :param pretrained_arch: string defining the pretrained architecture to be used
         '''
-        pretrained_layers = PRETRAINED_MODELS[pretrained_arch](weights='imagenet', include_top=False)
+        pretrained_layers = ARCHITECTURES[pretrained_arch](weights='imagenet', include_top=False)
         top_layers = pretrained_layers.output
         top_layers = keras.layers.GlobalAveragePooling2D()(top_layers)
         top_layers = keras.layers.Dense(1024, activation='relu')(top_layers)
@@ -56,8 +57,8 @@ class Network(object):
         #self.print_layers_info()
         self.generators = dict()
         self.pretrained_arch = pretrained_arch
+        print self.model.summary()
         sleep(1)
-        #print self.model.summary()
         return
     
     def print_layers_info(self):
@@ -179,7 +180,9 @@ class Network(object):
             workers = 10,
             callbacks = callbacks_list)
         return
-
+	
+	def predict(self, X):
+		return self.model.predict(X,batch_size=1)
 class Temp(object):
     '''
     Temporal auxiliar class for debugging. Contains dummy versions of modules of the project
@@ -198,7 +201,7 @@ class Temp(object):
         train_dir = os.path.join('..','data','images','raw','train') #Should contain one director per class
         val_dir = os.path.join('..','data','images','raw','validate') #Should contain one director per class
         
-        image_shape = (250, 250)
+        image_shape = (100, 100)
         
         from keras.preprocessing.image import ImageDataGenerator
         train_augmenter = ImageDataGenerator(
@@ -208,7 +211,7 @@ class Temp(object):
                 rotation_range=30,
                 width_shift_range=0.15,
                 height_shift_range=0.15,
-                preprocessing_function=None, #Maybe we could place here our segmentation function, or add random blur
+                preprocessing_function=segmentator.segment_image, #Maybe we could place here our segmentation function, or add random blur
                 horizontal_flip=True)
 
         val_augmenter = ImageDataGenerator(
