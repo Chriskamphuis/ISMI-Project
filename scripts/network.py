@@ -1,12 +1,33 @@
+'''
+Module to train/finetune CNNs (using pretrained or custom architectures)
+'''
+
+
 import os
 import keras
 from keras.applications import ResNet50, InceptionV3, Xception, VGG16, VGG19
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D
 import scipy.misc
 import numpy as np
 from time import sleep
 import segmentator
 
-ARCHITECTURES = {
+
+
+WEIGHTS_INPUT_DIR = os.path.join('..','data','weights','input')
+WEIGHTS_OUTPUT_DIR = os.path.join('..','data','weights','output')
+TENSORBOARD_LOGS_DIR = os.path.join('..','data','tensorboard_logs')
+
+#TODO intengrate IMAGE_SHAPE in the code in a better way
+IMAGE_SHAPE = (100, 100)
+
+
+
+##################################
+#PRETRAINED ARCHITECTURE AVAILABLE
+##################################
+PRETRAINED_ARCHS = {
     "vgg16":        VGG16,
     "vgg19":        VGG19,
     "inception":    InceptionV3,
@@ -14,9 +35,32 @@ ARCHITECTURES = {
     "resnet":       ResNet50
 }
 
-WEIGHTS_INPUT_DIR = os.path.join('..','data','weights','input')
-WEIGHTS_OUTPUT_DIR = os.path.join('..','data','weights','output')
-TENSORBOARD_LOGS_DIR = os.path.join('..','data','tensorboard_logs')
+##################################
+#CUSTOMARCHITECTURE AVAILABLE
+##################################
+'''
+In order to try different custom architectures, just create a function
+that returns a CNN model and add it to the CUSTOM_ARCHS dictionary (creating
+a name/key for it as well), just as it is shown with "simple_cnn_1"
+'''
+
+def custom_1():
+    model = Sequential()
+    model.add(Conv2D(32, input_shape = IMAGE_SHAPE + (3,), kernel_size=(3, 3),activation='relu'))
+    model.add(Conv2D(64, (3, 3), activation='relu'))
+    model.add(MaxPooling2D(pool_size=(2, 2)))
+    model.add(Dropout(0.25))
+    model.add(Flatten())
+    model.add(Dense(128, activation='relu'))
+    model.add(Dropout(0.5))
+    model.add(Dense(3, activation='softmax'))
+    return model
+
+CUSTOM_ARCHS ={
+    "simple_cnn_1":    custom_1,
+}
+
+
 
 class Network(object):
     '''
@@ -28,7 +72,7 @@ class Network(object):
     other layers). Finally, we unfreeze some of the original layers and train those with a low learning
     rate, to fine-tune the network for our specific domain.
     '''
-    def __init__(self, pretrained_arch, input_weights_name = None):
+    def __init__(self, arch, input_weights_name = None):
         '''
         Transfer Learning network initialization. There is no need to ask for the output_weights_name since those will be
         written to disk as training goes one and their name would be inferred from the name of the architecture used + the epoch
@@ -36,9 +80,28 @@ class Network(object):
         
         :param input_weights_name: filepath of network weights to be read and loaded (must fit the selected
         architecture)
-        :param pretrained_arch: string defining the pretrained architecture to be used
+        :param arch: string defining the pretrained architecture to be used
         '''
-        pretrained_layers = ARCHITECTURES[pretrained_arch](weights='imagenet', include_top=False)
+        if arch in PRETRAINED_ARCHS:
+            self.build_pretrained_arch(arch)
+        else:
+            self.model = CUSTOM_ARCHS[arch]()
+       
+        if not input_weights_name:
+            print 'Original Imagenet weights for network',arch,'loaded'
+        else:
+            input_weights_path = os.path.join(WEIGHTS_INPUT_DIR, input_weights_name)
+            print 'Loading weights for',arch,'from',input_weights_path
+            self.model.load_weights(input_weights_path)
+        #self.print_layers_info()
+        self.generators = dict()
+        self.arch = arch
+        print self.model.summary()
+        sleep(1)
+        return
+    
+    def build_pretrained_arch(self, arch):
+        pretrained_layers = PRETRAINED_ARCHS[arch](weights='imagenet', include_top=False)
         top_layers = pretrained_layers.output
         top_layers = keras.layers.GlobalAveragePooling2D()(top_layers)
         top_layers = keras.layers.Dense(1024, activation='relu')(top_layers)
@@ -48,31 +111,24 @@ class Network(object):
         self.model = keras.models.Model(
                                     inputs=self.pretrained_layers.input,
                                     outputs=top_layers)
-        if not input_weights_name:
-            print 'Original Imagenet weights for network',pretrained_arch,'loaded'
-        else:
-            input_weights_path = os.path.join(WEIGHTS_INPUT_DIR, input_weights_name)
-            print 'Loading weights for',pretrained_arch,'from',input_weights_path
-            self.model.load_weights(input_weights_path)
-        #self.print_layers_info()
-        self.generators = dict()
-        self.pretrained_arch = pretrained_arch
-        print self.model.summary()
-        sleep(1)
-        return
     
     def print_layers_info(self):
         '''
         Prints information about current frozen (non trainable) and unfrozen (trainable)
         layers
         '''
-        print len(self.model.layers),'total layers (',len(self.pretrained_layers.layers),\
+        if self.arch in PRETRAINED_ARCHS:
+            #Only pretrained archs have "pretrained_layers"
+            print len(self.model.layers),'total layers (',len(self.pretrained_layers.layers),\
             'pretrained and',len(self.model.layers)-len(self.pretrained_layers.layers),'new stacked on top)'
+        else:
+            print len(self.model.layers),'total layers'
         trainable = [layer.trainable for layer in self.model.layers]
         non_trainable = [not i for i in trainable]
         tr_pos = list(np.where(trainable)[0])
         nontr_pos = list(np.where(non_trainable)[0])
-        print '\t',sum(non_trainable),'non-trainable layers: from',nontr_pos[0],'to',nontr_pos[-1]
+        if len(nontr_pos) > 0:
+            print '\t',sum(non_trainable),'non-trainable layers: from',nontr_pos[0],'to',nontr_pos[-1]
         print '\t',sum(trainable),'trainable layers: from',tr_pos[0],'to',tr_pos[-1]
         print 'Trainable layer map:',''.join([str(int(l.trainable)) for l in self.model.layers])
     
@@ -93,7 +149,7 @@ class Network(object):
         if percentage:
             assert percentage < 1
             n_layers = int(float(len(self.pretrained_layers.layers))*percentage)
-        print 'Freezing last',n_layers,'of the pretrained model',self.pretrained_arch,'...'
+        print 'Freezing last',n_layers,'of the pretrained model',self.arch,'...'
         for layer in self.pretrained_layers.layers[-n_layers:]:
             layer.trainable = True
     
@@ -139,7 +195,7 @@ class Network(object):
         callbacks_list = []
         trainable_layers = sum([int(layer.trainable) for layer in self.model.layers])
         #Set up save checkpoints for model's weights
-        weights_name = self.pretrained_arch +'.'+str(trainable_layers) + ".e{epoch:03d}-tloss{loss:.4f}-vloss{val_loss:.4f}.hdf5"
+        weights_name = self.arch +'.'+str(trainable_layers) + ".e{epoch:03d}-tloss{loss:.4f}-vloss{val_loss:.4f}.hdf5"
         weights_path = os.path.join(WEIGHTS_OUTPUT_DIR, weights_name)
         callbacks_list.append(keras.callbacks.ModelCheckpoint(
             weights_path,
@@ -201,7 +257,7 @@ class Temp(object):
         train_dir = os.path.join('..','data','images','raw','train') #Should contain one director per class
         val_dir = os.path.join('..','data','images','raw','validate') #Should contain one director per class
         
-        image_shape = (100, 100)
+        
         
         from keras.preprocessing.image import ImageDataGenerator
         train_augmenter = ImageDataGenerator(
@@ -211,7 +267,7 @@ class Temp(object):
                 rotation_range=30,
                 width_shift_range=0.15,
                 height_shift_range=0.15,
-                preprocessing_function=segmentator.segment_image, #Maybe we could place here our segmentation function, or add random blur
+                preprocessing_function=None, #Maybe we could place here our segmentation function, or add random blur
                 horizontal_flip=True)
 
         val_augmenter = ImageDataGenerator(
@@ -220,13 +276,13 @@ class Temp(object):
 
         train_generator = train_augmenter.flow_from_directory(
                 directory = train_dir,
-                target_size=image_shape,
+                target_size=IMAGE_SHAPE,
                 batch_size=32,
                 classes = ['Type_1','Type_2','Type_3'])
 
         val_generator = val_augmenter.flow_from_directory(
                 directory = val_dir,
-                target_size=image_shape,
+                target_size=IMAGE_SHAPE,
                 batch_size=32,
                 classes = ['Type_1','Type_2','Type_3'])
                 
