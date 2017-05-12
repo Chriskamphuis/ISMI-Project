@@ -15,8 +15,7 @@ import segmentator
 
 
 
-WEIGHTS_INPUT_DIR = os.path.join('..','data','weights','input')
-WEIGHTS_OUTPUT_DIR = os.path.join('..','data','weights','output')
+WEIGHTS_DIR = os.path.join('..','data','weights')
 TENSORBOARD_LOGS_DIR = os.path.join('..','data','tensorboard_logs')
 
 #TODO intengrate IMAGE_SHAPE in the code in a better way
@@ -90,7 +89,7 @@ class Network(object):
         if not input_weights_name:
             print 'Original Imagenet weights for network',arch,'loaded'
         else:
-            input_weights_path = os.path.join(WEIGHTS_INPUT_DIR, input_weights_name)
+            input_weights_path = os.path.join(WEIGHTS_DIR, input_weights_name)
             print 'Loading weights for',arch,'from',input_weights_path
             self.model.load_weights(input_weights_path)
         #self.print_layers_info()
@@ -196,7 +195,7 @@ class Network(object):
         trainable_layers = sum([int(layer.trainable) for layer in self.model.layers])
         #Set up save checkpoints for model's weights
         weights_name = self.arch +'.'+str(trainable_layers) + ".e{epoch:03d}-tloss{loss:.4f}-vloss{val_loss:.4f}.hdf5"
-        weights_path = os.path.join(WEIGHTS_OUTPUT_DIR, weights_name)
+        weights_path = os.path.join(WEIGHTS_DIR, weights_name)
         callbacks_list.append(keras.callbacks.ModelCheckpoint(
             weights_path,
             monitor = 'val_loss',
@@ -228,10 +227,10 @@ class Network(object):
         total_unique_images = 1481.
         self.model.fit_generator(
             generator = self.generators['train'],
-            steps_per_epoch = int(0.75*total_unique_images/batch_size), 
+            steps_per_epoch = 2,#int(0.75*total_unique_images/batch_size), 
             epochs = epochs,
             validation_data = self.generators['validate'],
-            validation_steps = int(0.25*total_unique_images/batch_size),
+            validation_steps = 1,#int(0.25*total_unique_images/batch_size),
             class_weight = class_weights,
             workers = 10,
             callbacks = callbacks_list)
