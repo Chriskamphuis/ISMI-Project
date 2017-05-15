@@ -102,7 +102,7 @@ class gamma_correct(object):
         pass
     
     
-class elastic_transform:
+class elastic_transform(object):
     
     def __init__(self, alpha, sigma):
         self.alpha = alpha
@@ -127,7 +127,7 @@ class elastic_transform:
     def randomize(self):
         pass
     
-class random_zooms:
+class random_zooms(object):
     
     def __init__(self, zoom):
         self.zoom = np.random.uniform(1, 1.3)
