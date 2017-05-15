@@ -3,11 +3,11 @@ import random
 from skimage.util import random_noise
 from scipy.ndimage import imread
 from scipy.ndimage.filters import gaussian_filter
-from skimage import exposure
+from skimage import exposure, transform
 import matplotlib.pyplot as plt
 from scipy.ndimage.interpolation import rotate as rot
 import time
-import keras.preprocessing.image
+from scipy.ndimage.interpolation import map_coordinates
     
 class fliplr(object):
     
@@ -104,22 +104,40 @@ class gamma_correct(object):
     
 class elastic_transform:
     
-    def __init__(self):
-        self.
+    def __init__(self, alpha, sigma):
+        self.alpha = alpha
+        self.sigma = sigma
     
-    def augment(self, image, alpha, sigma, random_state=None):
+    def augment(self, image, label=None):
 
-        if random_state is None:
-            random_state = numpy.random.RandomState(None)
+        assert len(image.shape)==2
+        
+        if label is None:
+            label = np.random.RandomState(None)
  
         shape = image.shape
-        dx = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
-        dy = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
+        dx = gaussian_filter((label.rand(*shape) * 2 - 1), self.sigma, mode="constant", cval=0) * self.alpha
+        dy = gaussian_filter((label.rand(*shape) * 2 - 1), self.sigma, mode="constant", cval=0) * self.alpha
  
-        x, y = numpy.meshgrid(numpy.arange(shape[0]), numpy.arange(shape[1]))
-        indices = numpy.reshape(y+dy, (-1, 1)), numpy.reshape(x+dx, (-1, 1))
+        x, y = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]))
+        indices = np.reshape(y+dy, (-1, 1)), np.reshape(x+dx, (-1, 1))
  
         return map_coordinates(image, indices, order=1).reshape(shape)
+        
+    def randomize(self):
+        pass
+    
+class random_zooms:
+    
+    def __init__(self, zoom):
+        self.zoom = np.random.uniform(1, 1.3)
+        
+    def augment(self, image, label=None):
+        zoom_aug = transform.AffineTransform(scale = (1/self.zoom,1/self.zoom))
+        return zoom_aug        
+        
+    def randomize(self):
+        pass
     
 if __name__ == "__main__":
     '''
