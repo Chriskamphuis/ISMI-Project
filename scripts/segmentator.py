@@ -1,3 +1,9 @@
+'''
+This class contains the function segment_image() which takes a raw image and
+returns its segemented version. Its a port from the kaggle kernel to a python
+2 version thus we can use it on the fly if we wanted to.
+'''
+
 import numpy as np
 import pandas as pd
 import cv2
@@ -14,6 +20,7 @@ def maxHist(hist):
     maxArea = (0, 0, 0)
     height = []
     position = []
+    
     for i in range(len(hist)):
         if (len(height) == 0):
             if (hist[i] > 0):
