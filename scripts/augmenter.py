@@ -3,9 +3,11 @@ import random
 from skimage.util import random_noise
 from scipy.ndimage import imread
 from scipy.ndimage.filters import gaussian_filter
+from skimage import exposure
 import matplotlib.pyplot as plt
 from scipy.ndimage.interpolation import rotate as rot
 import time
+import keras.preprocessing.image
     
 class fliplr(object):
     
@@ -87,6 +89,37 @@ class chain_augmenters(object):
     def randomize(self):
         for aug in self.augmenters:
             aug.randomize()
+            
+class gamma_correct(object):
+    
+    def __init__(self):
+        self.gamma = 2.0
+    
+    def augment(self, image, label=None):
+        return exposure.adjust_gamma(image, self.gamma)
+        
+    def randomize(self):
+        pass
+    
+    
+class elastic_transform:
+    
+    def __init__(self):
+        self.
+    
+    def augment(self, image, alpha, sigma, random_state=None):
+
+        if random_state is None:
+            random_state = numpy.random.RandomState(None)
+ 
+        shape = image.shape
+        dx = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
+        dy = gaussian_filter((random_state.rand(*shape) * 2 - 1), sigma, mode="constant", cval=0) * alpha
+ 
+        x, y = numpy.meshgrid(numpy.arange(shape[0]), numpy.arange(shape[1]))
+        indices = numpy.reshape(y+dy, (-1, 1)), numpy.reshape(x+dx, (-1, 1))
+ 
+        return map_coordinates(image, indices, order=1).reshape(shape)
     
 if __name__ == "__main__":
     '''

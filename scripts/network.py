@@ -95,8 +95,8 @@ class Network(object):
         #self.print_layers_info()
         self.generators = dict()
         self.arch = arch
-        print self.model.summary()
-        sleep(1)
+        #print self.model.summary()
+        #sleep(1)
         return
     
     def build_pretrained_arch(self, arch):
@@ -227,10 +227,10 @@ class Network(object):
         total_unique_images = 1481.
         self.model.fit_generator(
             generator = self.generators['train'],
-            steps_per_epoch = 2,#int(0.75*total_unique_images/batch_size), 
+            steps_per_epoch = int(0.75*total_unique_images/batch_size), 
             epochs = epochs,
             validation_data = self.generators['validate'],
-            validation_steps = 1,#int(0.25*total_unique_images/batch_size),
+            validation_steps = int(0.25*total_unique_images/batch_size),
             class_weight = class_weights,
             workers = 10,
             callbacks = callbacks_list)
