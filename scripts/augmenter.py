@@ -66,40 +66,16 @@ class blur(object):
     def randomize(self):
         self.sigma = np.random.uniform(-self.interval, self.interval)
                                   
-class chain_augmenters(object):
-    
-    def __init__(self, flip=True, noise=True, smooth=True,
-                 blur_interval=0.3, rotate=True,
-                 max_angle=5):
-        self.augmenters = []
-        if flip:
-            self.augmenters.append(fliplr())
-        if smooth:
-            self.augmenters.append(blur(blur_interval))
-        if noise:
-            self.augmenters.append(gauss_noise())
-        if rotate: # Takes about .4 seconds ..
-            self.augmenters.append(rotator(max_angle))
-        
-    def augment(self, image, label=None):
-        for aug in self.augmenters:
-            image, label = aug.augment(image, label)
-        return image, label
-    
-    def randomize(self):
-        for aug in self.augmenters:
-            aug.randomize()
-            
 class gamma_correct(object):
     
     def __init__(self):
-        self.gamma = 2.0
+        self.gamma = None
     
     def augment(self, image, label=None):
-        return exposure.adjust_gamma(image, self.gamma)
+        return exposure.adjust_gamma(image, self.gamma), label
         
     def randomize(self):
-        pass
+        self.gamma = np.random.uniform(.8, 1.2)
     
     
 class elastic_transform(object):
@@ -126,19 +102,55 @@ class elastic_transform(object):
         
     def randomize(self):
         pass
-    
+
+
 class random_zooms(object):
-    
-    def __init__(self, zoom):
+
+    def __init__(self):
         self.zoom = np.random.uniform(1, 1.3)
-        
+
     def augment(self, image, label=None):
-        zoom_aug = transform.AffineTransform(scale = (1/self.zoom,1/self.zoom))
-        return zoom_aug        
+        zoom_aug = transform.AffineTransform(scale = (1.0/self.zoom,
+                                                      1.0/self.zoom))
+        if label is None:
+            return transform.warp(image, zoom_aug), label
+        return transform.warp(image, zoom_aug), transform.warp(image, label)
         
     def randomize(self):
-        pass
+        self.zoom = np.random.uniform(1, 1.3)
+
+
+class chain_augmenters(object):
     
+    def __init__(self, flip=True, noise=True, smooth=True,
+                 blur_interval=0.3, rotate=True,
+                 max_angle=5, gamma=True, zoom=True, transform=True):
+        self.augmenters = []
+        if flip:
+            self.augmenters.append(fliplr())
+        if smooth:
+            self.augmenters.append(blur(blur_interval))
+        if noise:
+            self.augmenters.append(gauss_noise())
+        if rotate: # Takes about .4 seconds ..
+            self.augmenters.append(rotator(max_angle))
+        if gamma:
+            self.augmenters.append(gamma_correct())
+        if zoom:
+            self.augmenters.append(random_zooms())
+        if transform:
+            pass
+        
+    def augment(self, image, label=None):
+        for aug in self.augmenters:
+            image, label = aug.augment(image, label)
+        return image, label
+    
+    def randomize(self):
+        for aug in self.augmenters:
+            aug.randomize()
+ 
+
 if __name__ == "__main__":
     '''
     This code is to test if augmentation work
