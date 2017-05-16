@@ -11,7 +11,9 @@ RAW_PATH = os.path.join(IMAGES_FOLDER_PATH,'raw')
 class BatchGenerator(object):
         '''
         Generate batches of data. I have decided not to keep all the images in
-        memory but the image paths
+        memory but the image paths. Now it is reading FULL raw images and thus
+        it resizes them in order to stack them and build the batches (so its slow).
+        If we are going to segment images offline maybe all of them cam fit in memory.
         '''
 
         def __init__(self):
