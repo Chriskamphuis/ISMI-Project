@@ -156,7 +156,7 @@ if __name__ == "__main__":
     This code is to test if augmentation work
     Will remove it after I wrote all the augmentations
     '''
-    aug = chain_augmenters(rotate=False)
+    aug = chain_augmenters()
     aug.randomize()
     test_image = '../data/testimage/frog.jpg'
     frog = imread(test_image)
@@ -165,3 +165,4 @@ if __name__ == "__main__":
     end = time.time()
     print(end - start)
     plt.imshow(frog[0])
+    plt.show()
