@@ -7,14 +7,22 @@ import glob
 
 IMAGES_FOLDER_PATH = os.path.join('..','data','images')
 RAW_PATH = os.path.join(IMAGES_FOLDER_PATH,'raw')
+PRE_TRAIN_PATH = os.path.join(IMAGES_FOLDER_PATH,'pre','train')
+
 
 class BatchGenerator(object):
         '''
         Generate batches of data. I have decided not to keep all the images in
-        memory but the image paths
+        memory but the image paths. Now it is reading FULL raw images and thus
+        it resizes them in order to stack them and build the batches (so its slow).
+        If we are going to segment images offline maybe all of them cam fit in memory.
         '''
 
-        def __init__(self):
+        def __init__(self, source):
+            if source == 'raw':
+                self.images_source = RAW_PATH
+            elif source == 'pre':
+                self.images_source = PRE_TRAIN_PATH            
             return
         
         def get_splitted_paths_from_csv(self, use_additional):
@@ -30,19 +38,19 @@ class BatchGenerator(object):
             classes = [0,1,2]
             image_folders = ['Type_1','Type_2','Type_3']
 
-            image_folder_paths = [os.path.join(RAW_PATH,image_folder) for image_folder in image_folders]
-
+            image_folder_paths = [os.path.join(self.images_source,image_folder) for image_folder in image_folders]
+            
             #Generate image paths for VALIDATION from CSV
             print 'Validation split:'
             val_filetargets, val_filepaths = [], []
             for c,image_folder in zip(classes, image_folders):
                 column = list(validation_split_df[image_folder].dropna())
-                val_filepaths += [os.path.join(RAW_PATH,image_folder,filename) for filename in column]
+                val_filepaths += [os.path.join(self.images_source,image_folder,filename) for filename in column]
                 val_filetargets += list(np.repeat(c,len(column)))
                 #print len(column),c
                 if use_additional:
                     column = list(validation_split_df[image_folder+'_extra'].dropna())
-                    val_filepaths += [os.path.join(RAW_PATH,image_folder+'_extra',filename) for filename in column]
+                    val_filepaths += [os.path.join(self.images_source,image_folder+'_extra',filename) for filename in column]
                     val_filetargets += list(np.repeat(c,len(column)))
                 print '\t',len(column),'of type',c+1
 
@@ -53,9 +61,9 @@ class BatchGenerator(object):
             print 'Training split:'
             train_filetargets, train_filepaths = [], []
             for c,image_folder in zip(classes, image_folders):
-                all_folder_images = glob.glob(os.path.join(RAW_PATH,image_folder,'*'))
+                all_folder_images = glob.glob(os.path.join(self.images_source,image_folder,'*'))
                 if use_additional:
-                    all_folder_images += glob.glob(os.path.join(RAW_PATH,image_folder+'_extra','*'))
+                    all_folder_images += glob.glob(os.path.join(self.images_source,image_folder+'_extra','*'))
                 #Train = All - Validation
                 train_folder_images = [path for path in all_folder_images if path is not val_filepaths]
                 train_filepaths += train_folder_images
@@ -93,9 +101,10 @@ class BatchGenerator(object):
                     #print batch
                     x_image_paths = data[batch*batch_size:(batch+1)*batch_size]
                     x = self.paths_to_images(x_image_paths)
-                    y = labels[batch*batch_size:(batch+1)*batch_size]
+                    y = np.array(labels[batch*batch_size:(batch+1)*batch_size])
                     if len(y) != batch_size:
                         break
+                    print x.shape, y.shape
                     yield((x, y))
                     
         def paths_to_images(self,paths):
@@ -104,7 +113,8 @@ class BatchGenerator(object):
             '''
             images = [scipy.misc.imread(path) for path in paths]
             #TODO remove resize when reading presegmented images
-            images = [cv2.resize(img, dsize=(500,500))[np.newaxis,:,:,:] for img in images]
+            images = [cv2.resize(img, dsize=(255,255))[np.newaxis,:,:,:] for img in images]
+            #images = [img[np.newaxis,:,:,:] for img in images]
             return np.concatenate(images)
         
         def shuffle(self, data, labels):
@@ -118,11 +128,11 @@ class BatchGenerator(object):
 
 ###USAGE
 '''
-g = BatchGenerator()
-train_filepaths, train_filetargets, val_filepaths, val_filetargets = g.get_splitted_paths_from_csv(use_additional = True)
+g = BatchGenerator(source = 'pre')
+train_filepaths, train_filetargets, val_filepaths, val_filetargets = g.get_splitted_paths_from_csv(use_additional = False)
 train_generator = g.generate(data = train_filepaths, labels = train_filetargets, batch_size = 2, shuffle = True)
 val_generator = g.generate(data = val_filepaths, labels = val_filetargets, batch_size = 2, shuffle = True)
-a = 6
+a = 3
 for x,y in train_generator:  
     a -= 1
     plt.figure()
@@ -130,7 +140,7 @@ for x,y in train_generator:
     plt.show()
     if a == 0:
         break
-a = 6
+a = 3
 for x,y in val_generator:  
     a -= 1
     plt.figure()
@@ -139,4 +149,26 @@ for x,y in val_generator:
     if a == 0:
         break
 
+
+g = BatchGenerator(source = 'raw')
+train_filepaths, train_filetargets, val_filepaths, val_filetargets = g.get_splitted_paths_from_csv(use_additional = False)
+train_generator = g.generate(data = train_filepaths, labels = train_filetargets, batch_size = 2, shuffle = True)
+val_generator = g.generate(data = val_filepaths, labels = val_filetargets, batch_size = 2, shuffle = True)
+a = 3
+for x,y in train_generator:  
+    a -= 1
+    plt.figure()
+    plt.imshow(x[0])
+    plt.show()
+    if a == 0:
+        break
+a = 3
+for x,y in val_generator:  
+    a -= 1
+    plt.figure()
+    plt.imshow(x[0])
+    plt.show()
+    if a == 0:
+        break
 '''
+

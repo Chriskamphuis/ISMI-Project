@@ -11,7 +11,7 @@ from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D
 import scipy.misc
 import numpy as np
 from time import sleep
-import segmentator
+
 
 
 
@@ -211,20 +211,20 @@ class Network(object):
                 write_images = True))
         
         #TODO handle usage of class freq weights or balanced batch generators
-        
+        '''
         class_weights = {
                 0:1-0.18,
                 1:1-0.55,
                 2:1-0.27}
-        
-        #class_weights = None
+        '''
+        class_weights = None
         
         #Fix needed https://github.com/fchollet/keras/issues/5475
         from PIL import ImageFile
         ImageFile.LOAD_TRUNCATED_IMAGES = True
         
         # Train
-        total_unique_images = 1481.
+        total_unique_images = 1921.# 1481.
         self.model.fit_generator(
             generator = self.generators['train'],
             steps_per_epoch = int(0.75*total_unique_images/batch_size), 
@@ -232,7 +232,7 @@ class Network(object):
             validation_data = self.generators['validate'],
             validation_steps = int(0.25*total_unique_images/batch_size),
             class_weight = class_weights,
-            workers = 10,
+            workers = 1,
             callbacks = callbacks_list)
         return
 	
