@@ -4,6 +4,7 @@ import pandas as pd
 import scipy.misc
 import cv2
 import glob  
+from sklearn.preprocessing import LabelBinarizer
 
 IMAGES_FOLDER_PATH = os.path.join('..','data','images')
 RAW_PATH = os.path.join(IMAGES_FOLDER_PATH,'raw')
@@ -92,6 +93,7 @@ class BatchGenerator(object):
             Generate batches of data images taking as input
             a list of image paths and labels
             '''
+            encoder = LabelBinarizer().fit(np.array([0,1,2]))
             while True:
                 if shuffle:
                     data, labels = self.shuffle(data, labels)
@@ -104,7 +106,7 @@ class BatchGenerator(object):
                     y = np.array(labels[batch*batch_size:(batch+1)*batch_size])
                     if len(y) != batch_size:
                         break
-                    print x.shape, y.shape
+                    y = encoder.transform(y)
                     yield((x, y))
                     
         def paths_to_images(self,paths):
