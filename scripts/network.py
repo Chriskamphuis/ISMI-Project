@@ -87,15 +87,15 @@ class Network(object):
             self.model = CUSTOM_ARCHS[arch]()
        
         if not input_weights_name:
-            print 'Original Imagenet weights for network',arch,'loaded'
+            print('Original Imagenet weights for network',arch,'loaded')
         else:
             input_weights_path = os.path.join(WEIGHTS_DIR, input_weights_name)
-            print 'Loading weights for',arch,'from',input_weights_path
+            print('Loading weights for',arch,'from',input_weights_path)
             self.model.load_weights(input_weights_path)
         #self.print_layers_info()
         self.generators = dict()
         self.arch = arch
-        #print self.model.summary()
+        #print(self.model.summary()
         #sleep(1)
         return
     
@@ -118,25 +118,25 @@ class Network(object):
         '''
         if self.arch in PRETRAINED_ARCHS:
             #Only pretrained archs have "pretrained_layers"
-            print len(self.model.layers),'total layers (',len(self.pretrained_layers.layers),\
-            'pretrained and',len(self.model.layers)-len(self.pretrained_layers.layers),'new stacked on top)'
+            print(len(self.model.layers),'total layers (',len(self.pretrained_layers.layers),\
+            'pretrained and',len(self.model.layers)-len(self.pretrained_layers.layers),'new stacked on top)')
         else:
-            print len(self.model.layers),'total layers'
+            print(len(self.model.layers),'total layers')
         trainable = [layer.trainable for layer in self.model.layers]
         non_trainable = [not i for i in trainable]
         tr_pos = list(np.where(trainable)[0])
         nontr_pos = list(np.where(non_trainable)[0])
         if len(nontr_pos) > 0:
-            print '\t',sum(non_trainable),'non-trainable layers: from',nontr_pos[0],'to',nontr_pos[-1]
-        print '\t',sum(trainable),'trainable layers: from',tr_pos[0],'to',tr_pos[-1]
-        print 'Trainable layer map:',''.join([str(int(l.trainable)) for l in self.model.layers])
+            print('\t',sum(non_trainable),'non-trainable layers: from',nontr_pos[0],'to',nontr_pos[-1])
+        print('\t',sum(trainable),'trainable layers: from',tr_pos[0],'to',tr_pos[-1])
+        print('Trainable layer map:',''.join([str(int(l.trainable)) for l in self.model.layers]))
     
     def freeze_all_pretrained_layers(self):
         '''
         Freeze all the pretrained layers. Note: a "pretrained layer" is named as such
         even after fine-tunning it
         '''
-        print 'Freezing all pretrained layers...'
+        print('Freezing all pretrained layers...')
         for layer in self.pretrained_layers.layers:
             layer.trainable = False
     
@@ -148,7 +148,7 @@ class Network(object):
         if percentage:
             assert percentage < 1
             n_layers = int(float(len(self.pretrained_layers.layers))*percentage)
-        print 'Freezing last',n_layers,'of the pretrained model',self.arch,'...'
+        print('Freezing last',n_layers,'of the pretrained model',self.arch,'...')
         for layer in self.pretrained_layers.layers[-n_layers:]:
             layer.trainable = True
     
@@ -170,7 +170,7 @@ class Network(object):
             optimizer = keras.optimizers.SGD(lr=0.0001, momentum=0.9)
         else:
             optimizer = 'adam'
-        print 'Using optimizer:',optimizer
+        print('Using optimizer:',optimizer)
         #Compile the model
         self.model.compile(
             optimizer=optimizer,
@@ -202,14 +202,14 @@ class Network(object):
             verbose=1,
             save_best_only = True,
             mode = 'min'))
-        
+        '''
         #Set up tensorboard logs
         callbacks_list.append(keras.callbacks.TensorBoard(
                 log_dir = TENSORBOARD_LOGS_DIR,
                 histogram_freq = 1,
                 write_graph = True,
                 write_images = True))
-        
+        '''
         #TODO handle usage of class freq weights or balanced batch generators
         '''
         class_weights = {
@@ -235,9 +235,9 @@ class Network(object):
             workers = 1,
             callbacks = callbacks_list)
         return
-	
-	def predict(self, X):
-		return self.model.predict(X,batch_size=1)
+    
+    def predict(self, X):
+        return self.model.predict(X,batch_size=1)
 class Temp(object):
     '''
     Temporal auxiliar class for debugging. Contains dummy versions of modules of the project

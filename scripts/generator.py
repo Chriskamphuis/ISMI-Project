@@ -42,7 +42,7 @@ class BatchGenerator(object):
             image_folder_paths = [os.path.join(self.images_source,image_folder) for image_folder in image_folders]
             
             #Generate image paths for VALIDATION from CSV
-            print 'Validation split:'
+            print('Validation split:')
             val_filetargets, val_filepaths = [], []
             for c,image_folder in zip(classes, image_folders):
                 column = list(validation_split_df[image_folder].dropna())
@@ -53,13 +53,13 @@ class BatchGenerator(object):
                     column = list(validation_split_df[image_folder+'_extra'].dropna())
                     val_filepaths += [os.path.join(self.images_source,image_folder+'_extra',filename) for filename in column]
                     val_filetargets += list(np.repeat(c,len(column)))
-                print '\t',len(column),'of type',c+1
+                print('\t',len(column),'of type',c+1)
 
             #Check that references in CSV exist in disk
             assert all([os.path.exists(path) for path in val_filepaths])
 
             #Generate image paths for TRAINING from {ALL - VALIDATION}
-            print 'Training split:'
+            print('Training split:')
             train_filetargets, train_filepaths = [], []
             for c,image_folder in zip(classes, image_folders):
                 all_folder_images = glob.glob(os.path.join(self.images_source,image_folder,'*'))
@@ -69,7 +69,7 @@ class BatchGenerator(object):
                 train_folder_images = [path for path in all_folder_images if path is not val_filepaths]
                 train_filepaths += train_folder_images
                 train_filetargets += list(np.repeat(c,len(train_folder_images)))
-                print '\t',len(train_folder_images),'of type',c+1
+                print('\t',len(train_folder_images),'of type',c+1)
 
             #Check that unferred references in CSV exist in disk
             assert all([os.path.exists(path) for path in train_filepaths])
@@ -97,8 +97,8 @@ class BatchGenerator(object):
             while True:
                 if shuffle:
                     data, labels = self.shuffle(data, labels)
-                batches = len(data)/batch_size
-                print batches
+                batches = int(len(data)/batch_size)
+                #print batches
                 for batch in range(batches):
                     #print batch
                     x_image_paths = data[batch*batch_size:(batch+1)*batch_size]
@@ -116,6 +116,7 @@ class BatchGenerator(object):
             images = [scipy.misc.imread(path) for path in paths]
             #TODO remove resize when reading presegmented images
             images = [cv2.resize(img, dsize=(255,255))[np.newaxis,:,:,:] for img in images]
+            #images = [img[:255,:][np.newaxis,:,:,:] for img in images]
             #images = [img[np.newaxis,:,:,:] for img in images]
             return np.concatenate(images)
         
