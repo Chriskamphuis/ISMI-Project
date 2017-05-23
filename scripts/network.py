@@ -8,6 +8,7 @@ import keras
 from keras.applications import ResNet50, InceptionV3, Xception, VGG16, VGG19
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D
+from SpatialPyramidPooling import SpatialPyramidPooling
 import scipy.misc
 import numpy as np
 from time import sleep
@@ -19,7 +20,7 @@ WEIGHTS_DIR = os.path.join('..','data','weights')
 TENSORBOARD_LOGS_DIR = os.path.join('..','data','tensorboard_logs')
 
 #TODO intengrate IMAGE_SHAPE in the code in a better way
-IMAGE_SHAPE = (100, 100)
+IMAGE_SHAPE = (None, None)
 
 
 
@@ -100,9 +101,9 @@ class Network(object):
         return
     
     def build_pretrained_arch(self, arch):
-        pretrained_layers = PRETRAINED_ARCHS[arch](weights='imagenet', include_top=False)
+        pretrained_layers = PRETRAINED_ARCHS[arch](weights='imagenet', include_top=False, pooling=None)
         top_layers = pretrained_layers.output
-        top_layers = keras.layers.GlobalAveragePooling2D()(top_layers)
+        top_layers = SpatialPyramidPooling([1,2,4])(top_layers)
         top_layers = keras.layers.Dense(1024, activation='relu')(top_layers)
         top_layers = keras.layers.Dense(3, activation='softmax')(top_layers)
    
