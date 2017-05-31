@@ -4,9 +4,12 @@ import pandas as pd
 import scipy.misc
 import cv2
 import glob  
+from sklearn.preprocessing import LabelBinarizer
 
 IMAGES_FOLDER_PATH = os.path.join('..','data','images')
 RAW_PATH = os.path.join(IMAGES_FOLDER_PATH,'raw')
+PRE_TRAIN_PATH = os.path.join(IMAGES_FOLDER_PATH,'pre','train')
+
 
 class BatchGenerator(object):
         '''
@@ -16,7 +19,11 @@ class BatchGenerator(object):
         If we are going to segment images offline maybe all of them cam fit in memory.
         '''
 
-        def __init__(self):
+        def __init__(self, source):
+            if source == 'raw':
+                self.images_source = RAW_PATH
+            elif source == 'pre':
+                self.images_source = PRE_TRAIN_PATH            
             return
         
         def get_splitted_paths_from_csv(self, use_additional):
@@ -32,37 +39,37 @@ class BatchGenerator(object):
             classes = [0,1,2]
             image_folders = ['Type_1','Type_2','Type_3']
 
-            image_folder_paths = [os.path.join(RAW_PATH,image_folder) for image_folder in image_folders]
-
+            image_folder_paths = [os.path.join(self.images_source,image_folder) for image_folder in image_folders]
+            
             #Generate image paths for VALIDATION from CSV
-            print 'Validation split:'
+            print('Validation split:')
             val_filetargets, val_filepaths = [], []
             for c,image_folder in zip(classes, image_folders):
                 column = list(validation_split_df[image_folder].dropna())
-                val_filepaths += [os.path.join(RAW_PATH,image_folder,filename) for filename in column]
+                val_filepaths += [os.path.join(self.images_source,image_folder,filename) for filename in column]
                 val_filetargets += list(np.repeat(c,len(column)))
                 #print len(column),c
                 if use_additional:
                     column = list(validation_split_df[image_folder+'_extra'].dropna())
-                    val_filepaths += [os.path.join(RAW_PATH,image_folder+'_extra',filename) for filename in column]
+                    val_filepaths += [os.path.join(self.images_source,image_folder+'_extra',filename) for filename in column]
                     val_filetargets += list(np.repeat(c,len(column)))
-                print '\t',len(column),'of type',c+1
+                print('\t',len(column),'of type',c+1)
 
             #Check that references in CSV exist in disk
             assert all([os.path.exists(path) for path in val_filepaths])
 
             #Generate image paths for TRAINING from {ALL - VALIDATION}
-            print 'Training split:'
+            print('Training split:')
             train_filetargets, train_filepaths = [], []
             for c,image_folder in zip(classes, image_folders):
-                all_folder_images = glob.glob(os.path.join(RAW_PATH,image_folder,'*'))
+                all_folder_images = glob.glob(os.path.join(self.images_source,image_folder,'*'))
                 if use_additional:
-                    all_folder_images += glob.glob(os.path.join(RAW_PATH,image_folder+'_extra','*'))
+                    all_folder_images += glob.glob(os.path.join(self.images_source,image_folder+'_extra','*'))
                 #Train = All - Validation
                 train_folder_images = [path for path in all_folder_images if path is not val_filepaths]
                 train_filepaths += train_folder_images
                 train_filetargets += list(np.repeat(c,len(train_folder_images)))
-                print '\t',len(train_folder_images),'of type',c+1
+                print('\t',len(train_folder_images),'of type',c+1)
 
             #Check that unferred references in CSV exist in disk
             assert all([os.path.exists(path) for path in train_filepaths])
@@ -86,18 +93,20 @@ class BatchGenerator(object):
             Generate batches of data images taking as input
             a list of image paths and labels
             '''
+            encoder = LabelBinarizer().fit(np.array([0,1,2]))
             while True:
                 if shuffle:
                     data, labels = self.shuffle(data, labels)
-                batches = len(data)/batch_size
-                print batches
+                batches = int(len(data)/batch_size)
+                #print batches
                 for batch in range(batches):
                     #print batch
                     x_image_paths = data[batch*batch_size:(batch+1)*batch_size]
                     x = self.paths_to_images(x_image_paths)
-                    y = labels[batch*batch_size:(batch+1)*batch_size]
+                    y = np.array(labels[batch*batch_size:(batch+1)*batch_size])
                     if len(y) != batch_size:
                         break
+                    y = encoder.transform(y)
                     yield((x, y))
                     
         def paths_to_images(self,paths):
@@ -106,7 +115,9 @@ class BatchGenerator(object):
             '''
             images = [scipy.misc.imread(path) for path in paths]
             #TODO remove resize when reading presegmented images
-            images = [cv2.resize(img, dsize=(500,500))[np.newaxis,:,:,:] for img in images]
+            images = [cv2.resize(img, dsize=(255,255))[np.newaxis,:,:,:] for img in images]
+            #images = [img[:255,:][np.newaxis,:,:,:] for img in images]
+            #images = [img[np.newaxis,:,:,:] for img in images]
             return np.concatenate(images)
         
         def shuffle(self, data, labels):
@@ -117,28 +128,3 @@ class BatchGenerator(object):
             indices = np.arange(len(data))
             np.random.shuffle(indices)
             return list(pd.Series(data)[indices]), list(pd.Series(labels)[indices])
-
-###USAGE
-'''
-g = BatchGenerator()
-train_filepaths, train_filetargets, val_filepaths, val_filetargets = g.get_splitted_paths_from_csv(use_additional = True)
-train_generator = g.generate(data = train_filepaths, labels = train_filetargets, batch_size = 2, shuffle = True)
-val_generator = g.generate(data = val_filepaths, labels = val_filetargets, batch_size = 2, shuffle = True)
-a = 6
-for x,y in train_generator:  
-    a -= 1
-    plt.figure()
-    plt.imshow(x[0])
-    plt.show()
-    if a == 0:
-        break
-a = 6
-for x,y in val_generator:  
-    a -= 1
-    plt.figure()
-    plt.imshow(x[0])
-    plt.show()
-    if a == 0:
-        break
-
-'''

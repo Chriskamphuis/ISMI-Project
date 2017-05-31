@@ -170,3 +170,4 @@ if __name__ == "__main__":
     end = time.time()
     print(end - start)
     plt.imshow(frog[0])
+    plt.show()
