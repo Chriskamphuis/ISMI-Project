@@ -27,7 +27,10 @@ class fliplr(object):
         self.flip = random.randint(0,1) == 1
                                   
 class gauss_noise(object):
-    
+    '''
+    Maybe we should not use this because it really 
+    makes it hard to classify an image
+    '''
     def __init__(self):
         pass
     
@@ -92,8 +95,10 @@ class elastic_transform(object):
             label = np.random.RandomState(None)
  
         shape = image.shape
-        dx = gaussian_filter((label.rand(*shape) * 2 - 1), self.sigma, mode="constant", cval=0) * self.alpha
-        dy = gaussian_filter((label.rand(*shape) * 2 - 1), self.sigma, mode="constant", cval=0) * self.alpha
+        dx = gaussian_filter((label.rand(*shape) * 2 - 1),
+                             self.sigma, mode="constant", cval=0) * self.alpha
+        dy = gaussian_filter((label.rand(*shape) * 2 - 1),
+                             self.sigma, mode="constant", cval=0) * self.alpha
  
         x, y = np.meshgrid(np.arange(shape[0]), np.arange(shape[1]))
         indices = np.reshape(y+dy, (-1, 1)), np.reshape(x+dx, (-1, 1))
@@ -156,9 +161,9 @@ if __name__ == "__main__":
     This code is to test if augmentation work
     Will remove it after I wrote all the augmentations
     '''
-    aug = chain_augmenters(rotate=False)
+    aug = chain_augmenters(rotate=False, noise=False)
     aug.randomize()
-    test_image = '../data/testimage/frog.jpg'
+    test_image = '../data/images/pre/train/Type_1/1013.jpg'
     frog = imread(test_image)
     start = time.time()
     frog = aug.augment(frog)
