@@ -128,3 +128,24 @@ class BatchGenerator(object):
             indices = np.arange(len(data))
             np.random.shuffle(indices)
             return list(pd.Series(data)[indices]), list(pd.Series(labels)[indices])
+
+	def padimage(self, img, dsize=(255,255)):
+	    '''
+            Pads the images to a square and then resizes
+            '''
+	    shp = img.shape
+	    if shp[0] > shp[1]:
+		to_pad = shp[0] - shp[1]
+		Pad = round(float(to_pad/2))
+		image = np.zeros(shp[0], shp[0])
+		x=0
+		y=Pad
+		wall[x:x+shp[0], y:y+shp[1]] = shp
+	    elif shp[1] > shp[0]:
+		to_pad = shp[1] - shp[0]
+		Pad = round(float(to_pad/2))
+		x = Pad
+		y = 0
+		wall[x:x+shp[0], y:y+shp[1]] = shp
+	    return cv.resize(img, dsize=(255,255))
+
