@@ -15,7 +15,6 @@ from glob import glob
 import os
 
 
-
 def maxHist(hist):
     maxArea = (0, 0, 0)
     height = []
@@ -83,7 +82,7 @@ def cropCircle(img):
     gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY);
     _, thresh = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY)
 
-    _, contours, _ = cv2.findContours(thresh.copy(),cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
+    contours, _ = cv2.findContours(thresh.copy(),cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
 
     main_contour = sorted(contours, key = cv2.contourArea, reverse = True)[0]
             
@@ -170,7 +169,7 @@ def segment_image(img, size = (100,100)):
     kernel = np.ones((11,11), np.uint8)
     thresh_mask = cv2.dilate(thresh_mask, kernel, iterations = 1)
     thresh_mask = cv2.erode(thresh_mask, kernel, iterations = 2)
-    _, contours_mask, _ = cv2.findContours(thresh_mask.copy(),cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
+    contours_mask, _ = cv2.findContours(thresh_mask.copy(),cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
 
     main_contour = sorted(contours_mask, key = cv2.contourArea, reverse = True)[0]
 
@@ -194,4 +193,14 @@ def segment_image(img, size = (100,100)):
     plt.show()
     '''
     return img_
-        
+
+if __name__ == '__main__':
+    for (dirpath, dirnames, filenames) in os.walk(os.path.join("..", "data","images", "raw")):
+        for filename in filenames:
+            if filename.endswith(".jpg"):
+                print dirpath, filename
+                im = cv2.imread(os.path.join(dirpath,filename))
+                segim = segment_image(im)
+                savepath = dirpath.replace("raw", "pre")
+                cv2.imwrite(os.path.join(savepath,filename),segim)
+                print os.path.join(savepath,filename)
