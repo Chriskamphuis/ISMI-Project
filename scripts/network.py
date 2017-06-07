@@ -19,7 +19,7 @@ WEIGHTS_DIR = os.path.join('..','data','weights')
 TENSORBOARD_LOGS_DIR = os.path.join('..','data','tensorboard_logs')
 
 #TODO intengrate IMAGE_SHAPE in the code in a better way
-IMAGE_SHAPE = (100, 100)
+IMAGE_SHAPE = (224, 224)
 
 
 
@@ -202,36 +202,41 @@ class Network(object):
             verbose=1,
             save_best_only = True,
             mode = 'min'))
-        '''
+        log_dir = os.path.join(TENSORBOARD_LOGS_DIR,self.arch +'.'+str(trainable_layers)+'lay')
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
         #Set up tensorboard logs
         callbacks_list.append(keras.callbacks.TensorBoard(
-                log_dir = TENSORBOARD_LOGS_DIR,
+                log_dir = log_dir,
                 histogram_freq = 1,
                 write_graph = True,
                 write_images = True))
-        '''
+        
         #TODO handle usage of class freq weights or balanced batch generators
-        '''
-        class_weights = {
-                0:1-0.18,
-                1:1-0.55,
-                2:1-0.27}
-        '''
-        class_weights = None
+        total_unique_images =  1481.
+        
+        class_weight = {
+                0:  total_unique_images/250,
+                1:  total_unique_images/781,
+                2:  total_unique_images/450}
+                
+        print("Class weights:",class_weight)
+        #class_weight = None
         
         #Fix needed https://github.com/fchollet/keras/issues/5475
         from PIL import ImageFile
         ImageFile.LOAD_TRUNCATED_IMAGES = True
         
+        steps_per_epoch = int(0.8*total_unique_images/batch_size)
+        validation_steps = int(0.2*total_unique_images/batch_size)
         # Train
-        total_unique_images = 1921.# 1481.
         self.model.fit_generator(
             generator = self.generators['train'],
-            steps_per_epoch = int(0.75*total_unique_images/batch_size), 
+            steps_per_epoch = steps_per_epoch, 
             epochs = epochs,
             validation_data = self.generators['validate'],
-            validation_steps = int(0.25*total_unique_images/batch_size),
-            class_weight = class_weights,
+            validation_steps = validation_steps,
+            class_weight = class_weight,
             workers = 1,
             callbacks = callbacks_list)
         return
