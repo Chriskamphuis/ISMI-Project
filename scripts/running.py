@@ -56,17 +56,24 @@ network.train(epochs = 100, batch_size = 32)
 
 arch = 'inception'
 batch_size = 32
-
+#input_weights_name = None
+#input_weights_name = 'vgg19.3.e050-tloss2.8528-vloss0.9718.hdf5'
+#input_weights_name = 'vgg16.3.e034-tloss2.7046-vloss1.0362.hdf5'
+#input_weights_name = 'xception.3.e016-tloss2.2526-vloss0.9234.hdf5'
+#input_weights_name = 'resnet.3.e005-tloss2.7884-vloss1.3572.hdf5'
+input_weights_name = 'inception.3.e005-tloss3.1504-vloss1.0324.hdf5'
 g = BatchGenerator(source = 'pre')
 train_filepaths, train_filetargets, val_filepaths, val_filetargets = g.get_splitted_paths_from_folders(val_perc = 0.2, use_additional = False)
 train_generator = g.generate(data = train_filepaths, labels = train_filetargets, batch_size = batch_size)
 val_generator = g.generate(data = val_filepaths, labels = val_filetargets, batch_size = batch_size)
-
-network = Network(arch = arch)
+'''
+network = Network(arch = arch,
+                  input_weights_name = input_weights_name)
 network.freeze_all_pretrained_layers()
 network.set_train_val_generators(train_generator, val_generator)
-network.compile(finetuning = False)
-network.train(epochs = 200, batch_size = batch_size)
+network.unfreeze_last_pretrained_layers(percentage = 0.7)
+network.compile(finetuning = input_weights_name == None)
+network.train(epochs = 500, batch_size = batch_size)
 '''
 
 
@@ -90,4 +97,3 @@ for a in range(10):
         #print(img.mean(),img.max(),img.min())
         #print(img)
         scipy.misc.imsave('delete/'+str(i)+str(a)+str(y_batch[i])+'.jpg',img)
-'''

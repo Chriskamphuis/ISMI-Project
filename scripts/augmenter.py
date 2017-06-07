@@ -160,7 +160,7 @@ if __name__ == "__main__":
     '''
     This code is to test if augmentation work
     Will remove it after I wrote all the augmentations
-    '''
+    
     aug = chain_augmenters(rotate=False, noise=False)
     aug.randomize()
     test_image = '../data/images/pre/train/Type_1/1013.jpg'
@@ -171,3 +171,4 @@ if __name__ == "__main__":
     print(end - start)
     plt.imshow(frog[0])
     plt.show()
+    '''
