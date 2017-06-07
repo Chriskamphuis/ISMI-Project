@@ -7,8 +7,9 @@ from pytz import timezone
 import scipy
 from scipy.misc import imread, imresize, imsave
 from network import Network
+from PIL import Image
 from augmenter import chain_augmenters
-
+from generator import BatchGenerator
 
 SUBMISSION_DIR = os.path.join('..','data','submissions')
 TEST_DIR = os.path.join('..','data','images','pre-old','test') #!!SHOULD BE REPRLACED WITH THE PREPOCESSED FOLDER IF THE IMAGES EXIST!!
@@ -48,9 +49,15 @@ def load_test_data(loadPath):
                                   zoom=True,
                                   transform=False)
     augmenter.randomize()
+    g = BatchGenerator(source = 'pre')
     for photo in photos:
         if (not 'Thumbs.db' in photo):
-            image = imread(os.path.join(loadPath,photo))
+            #image = imread(os.path.join(loadPath,photo))
+            image = Image.open(os.path.join(loadPath,photo))
+            #TODO remove resize when reading presegmented images
+            image = g.random_padding(image)
+            #images = [cv2.resize(img, dsize=(224,224)) for img in images]
+            
             image = imresize(image,size=size)
             image= augmenter.augment(image)[0]
             #scipy.misc.imsave('/lustre2/0/ismikag2017/ISMI-project/scripts/delete/'+str(random.randint(0,99999))+'.jpg',image)

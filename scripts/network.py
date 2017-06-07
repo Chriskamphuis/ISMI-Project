@@ -242,7 +242,9 @@ class Network(object):
         return
     
     def predict(self, X):
-        return self.model.predict(X,batch_size=1)
+        batch_size = 32
+        print("Predicting ",X.shape,"with batch size",batch_size,"...")
+        return self.model.predict(X,batch_size=batch_size)
 class Temp(object):
     '''
     Temporal auxiliar class for debugging. Contains dummy versions of modules of the project
