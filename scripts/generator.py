@@ -9,10 +9,12 @@ from augmenter import chain_augmenters
 import random
 from PIL import Image
 from keras.applications.imagenet_utils import preprocess_input
+import augmenter
+
 
 IMAGES_FOLDER_PATH = os.path.join('..','data','images')
 RAW_PATH = os.path.join(IMAGES_FOLDER_PATH,'raw')
-PRE_TRAIN_PATH = os.path.join(IMAGES_FOLDER_PATH,'pre-old','train')
+PRE_TRAIN_PATH = os.path.join(IMAGES_FOLDER_PATH,'pre_new','train')
 
 
 class BatchGenerator(object):
@@ -28,15 +30,7 @@ class BatchGenerator(object):
                 self.images_source = RAW_PATH
             elif source == 'pre':
                 self.images_source = PRE_TRAIN_PATH 
-            self.augmenter = chain_augmenters(flip=True,
-                                              noise=False,
-                                              smooth=True,
-                                              blur_interval=0.3,
-                                              rotate=False,
-                                              max_angle=5,
-                                              gamma=True,
-                                              zoom=True,
-                                              transform=False)
+            self.augmenter = augmenter.KAugmentor()
             return
         
         def get_splitted_paths_from_csv(self, use_additional):
@@ -106,7 +100,7 @@ class BatchGenerator(object):
                 #print batches                
                 for batch in range(batches):
                     #print batch
-                    self.augmenter.randomize()
+                    #self.augmenter.randomize()
                     x_image_paths = data[batch*batch_size:(batch+1)*batch_size]
                     x = self.paths_to_images(x_image_paths)
                     y = np.array(labels[batch*batch_size:(batch+1)*batch_size])
@@ -116,31 +110,6 @@ class BatchGenerator(object):
                     #x = preprocess_input(x)
                     yield((x, y))
                     
-        def random_padding(self,old_im): 
-            '''
-            Receives a non-squared PIL Image object and returns
-            its black-padded version as a Numpy array with square shape.
-            the way the pad is added is random (to serve as augmentation),
-            so this function is meant to be used online
-            '''
-            #old_im = Image.open(img_path)
-            old_size = old_im.size
-
-            new_size = (max(old_size),max(old_size))
-            new_im = Image.new("RGB", new_size)   ## luckily, this is already black!
-            x = random.randint(0, int((new_size[0]-old_size[0])))
-            y = random.randint(0, int((new_size[1]-old_size[1])))
-            new_im.paste(old_im, (x,y))
-            old_im = np.array(old_im)
-            new_im = np.array(new_im)
-            '''plt.subplot(1,2,1)
-            plt.imshow(old_im)
-            plt.title(str(old_im.shape))
-            plt.subplot(1,2,2)
-            plt.imshow(new_im)
-            plt.title(str(new_im.shape))
-            plt.show()'''
-            return new_im
             
         def paths_to_images(self,paths):
             '''
@@ -149,14 +118,14 @@ class BatchGenerator(object):
             #images = [scipy.misc.imread(path) for path in paths]
             images = [Image.open(path) for path in paths]
             #TODO remove resize when reading presegmented images
-            images = [self.random_padding(img) for img in images]
-            images = [cv2.resize(img, dsize=(224,224)) for img in images]
+            ##images = [self.random_padding(img) for img in images]
+            ##images = [cv2.resize(img, dsize=(224,224)) for img in images]
             #images_ = []
             #for img in images:
                 #self.augmenter.randomize()
                 #images_.append(self.augmenter.augment(img)[0])
             #images = images_
-            images = [self.augmenter.augment(img)[0] for img in images]
+            images = [self.augmenter.augment(img) for img in images]
             
             images = [img[np.newaxis,:,:,:] for img in images]
             #images = [img[0][np.newaxis,:,:,:] for img in images]
@@ -212,5 +181,3 @@ class BatchGenerator(object):
             return train_filepaths, train_filetargets, val_filepaths, val_filetargets
             
             
-
-
